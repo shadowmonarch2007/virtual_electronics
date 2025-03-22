@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Theme Toggle Test</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .test-container {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-lg);
+            background-color: var(--surface-color);
+            color: var(--text-color);
+        }
+        .test-section {
+            margin-bottom: 20px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-md);
+            background-color: var(--background-color);
+        }
+        .test-title {
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+        .test-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .test-label {
+            min-width: 150px;
+            color: var(--text-secondary);
+        }
+        #theme-status {
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+    </style>
+</head>
+<body data-theme="light">
+    <div class="test-container">
+        <h1>Dark Theme Test</h1>
+        
+        <div class="test-section">
+            <div class="test-title">Theme Controls</div>
+            <div class="test-row">
+                <div class="test-label">Toggle Theme:</div>
+                <button id="theme-toggle" class="icon-button">
+                    <i class="fas fa-moon"></i>
+                </button>
+            </div>
+            <div class="test-row">
+                <div class="test-label">Current Theme:</div>
+                <div id="theme-status">Light</div>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <div class="test-title">UI Elements Test</div>
+            <div class="test-row">
+                <div class="test-label">Primary Button:</div>
+                <button class="button-primary">Primary Button</button>
+            </div>
+            <div class="test-row">
+                <div class="test-label">Secondary Button:</div>
+                <button class="button-secondary">Secondary Button</button>
+            </div>
+            <div class="test-row">
+                <div class="test-label">Text Input:</div>
+                <input type="text" placeholder="Text input">
+            </div>
+            <div class="test-row">
+                <div class="test-label">Icon Button:</div>
+                <button class="icon-button"><i class="fas fa-cog"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const themeToggleBtn = document.getElementById('theme-toggle');
+            const themeStatusText = document.getElementById('theme-status');
+            
+            // Initialize from localStorage
+            let currentTheme = localStorage.getItem('theme') || 'light';
+            document.body.setAttribute('data-theme', currentTheme);
+            themeStatusText.textContent = currentTheme.charAt(0).toUpperCase() + currentTheme.slice(1);
+            
+            // Update icon based on current theme
+            updateThemeIcon(currentTheme);
+            
+            // Theme toggle event
+            themeToggleBtn.addEventListener('click', function() {
+                currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                
+                // Apply theme
+                document.body.setAttribute('data-theme', currentTheme);
+                themeStatusText.textContent = currentTheme.charAt(0).toUpperCase() + currentTheme.slice(1);
+                
+                // Update icon
+                updateThemeIcon(currentTheme);
+                
+                // Save to localStorage
+                localStorage.setItem('theme', currentTheme);
+                
+                console.log('Theme changed to:', currentTheme);
+            });
+            
+            function updateThemeIcon(theme) {
+                const themeIcon = themeToggleBtn.querySelector('i');
+                themeIcon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+            }
+        });
+    </script>
+</body>
+</html> 

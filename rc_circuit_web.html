@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RC Circuit Simulator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .oscilloscope {
+            width: 100%;
+            height: 400px;
+            background-color: #001824;
+            border-radius: 5px;
+            position: relative;
+            margin-bottom: 20px;
+        }
+        canvas {
+            width: 100%;
+            height: 100%;
+        }
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 15px;
+        }
+        label {
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="range"] {
+            width: 100%;
+        }
+        .value-display {
+            margin-top: 5px;
+            color: #666;
+        }
+        button {
+            background-color: #3B82F6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #2563EB;
+        }
+        .button-group {
+            display: flex;
+            margin-top: 20px;
+        }
+        .grid-lines {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        .legend {
+            display: flex;
+            align-items: center;
+            margin-top: 10px;
+            gap: 20px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .legend-color {
+            width: 20px;
+            height: 3px;
+        }
+        .circuit-diagram {
+            max-width: 400px;
+            margin: 20px auto;
+            text-align: center;
+        }
+        .circuit-diagram img {
+            max-width: 100%;
+        }
+        .stats {
+            background-color: #f0f9ff;
+            border-left: 4px solid #3B82F6;
+            padding: 10px 15px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>RC Circuit Simulator</h1>
+        <p>This interactive simulator shows the charging and discharging behavior of a resistor-capacitor (RC) circuit.</p>
+        
+        <div class="circuit-diagram">
+            <svg width="300" height="150" viewBox="0 0 300 150">
+                <!-- Battery -->
+                <rect x="20" y="60" width="10" height="30" fill="none" stroke="black" stroke-width="2"/>
+                <line x1="15" y1="70" x2="35" y2="70" stroke="black" stroke-width="2"/>
+                <line x1="25" y1="50" x2="25" y2="90" stroke="black" stroke-width="2"/>
+                <!-- Wire top -->
+                <line x1="25" y1="50" x2="150" y2="50" stroke="black" stroke-width="2"/>
+                <!-- Resistor -->
+                <path d="M150,50 L150,30 L160,30 L160,70 L170,70 L170,30 L180,30 L180,70 L190,70 L190,30 L200,30 L200,50" fill="none" stroke="black" stroke-width="2"/>
+                <!-- Wire after resistor -->
+                <line x1="200" y1="50" x2="230" y2="50" stroke="black" stroke-width="2"/>
+                <!-- Capacitor -->
+                <line x1="230" y1="30" x2="230" y2="70" stroke="black" stroke-width="2"/>
+                <line x1="250" y1="30" x2="250" y2="70" stroke="black" stroke-width="2"/>
+                <!-- Wire bottom -->
+                <line x1="25" y1="90" x2="250" y2="90" stroke="black" stroke-width="2"/>
+                <line x1="250" y1="70" x2="250" y2="90" stroke="black" stroke-width="2"/>
+                <!-- Labels -->
+                <text x="25" y="110" text-anchor="middle">5V</text>
+                <text x="175" y="20" text-anchor="middle">1kΩ</text>
+                <text x="240" y="110" text-anchor="middle">10μF</text>
+            </svg>
+        </div>
+        
+        <div class="oscilloscope">
+            <canvas id="oscilloscope-canvas"></canvas>
+            <div class="grid-lines" id="grid-lines"></div>
+        </div>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #00ff00;"></div>
+                <span>Charging</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #4287f5;"></div>
+                <span>Discharging</span>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <div class="control-column">
+                <div class="control-group">
+                    <label for="resistance">Resistance (Ω):</label>
+                    <input type="range" id="resistance" min="100" max="10000" step="100" value="1000">
+                    <div class="value-display" id="resistance-value">1000 Ω</div>
+                </div>
+                
+                <div class="control-group">
+                    <label for="capacitance">Capacitance (μF):</label>
+                    <input type="range" id="capacitance" min="1" max="100" step="1" value="10">
+                    <div class="value-display" id="capacitance-value">10 μF</div>
+                </div>
+                
+                <div class="control-group">
+                    <label for="voltage">Voltage (V):</label>
+                    <input type="range" id="voltage" min="1" max="12" step="0.5" value="5">
+                    <div class="value-display" id="voltage-value">5 V</div>
+                </div>
+            </div>
+            
+            <div class="control-column">
+                <div class="control-group">
+                    <label for="time-scale">Time Scale (ms/div):</label>
+                    <input type="range" id="time-scale" min="1" max="500" step="1" value="50">
+                    <div class="value-display" id="time-scale-value">50 ms/div</div>
+                </div>
+                
+                <div class="control-group">
+                    <label for="voltage-scale">Voltage Scale (V/div):</label>
+                    <input type="range" id="voltage-scale" min="0.1" max="5" step="0.1" value="1">
+                    <div class="value-display" id="voltage-scale-value">1 V/div</div>
+                </div>
+                
+                <div class="control-group">
+                    <label>Circuit Mode:</label>
+                    <div>
+                        <input type="radio" id="charging" name="circuit-mode" value="charging" checked>
+                        <label for="charging">Charging</label>
+                    </div>
+                    <div>
+                        <input type="radio" id="discharging" name="circuit-mode" value="discharging">
+                        <label for="discharging">Discharging</label>
+                    </div>
+                    <div>
+                        <input type="radio" id="both" name="circuit-mode" value="both">
+                        <label for="both">Both</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="button-group">
+            <button id="start-button">Start</button>
+            <button id="pause-button">Pause</button>
+            <button id="reset-button">Reset</button>
+        </div>
+        
+        <div class="stats" id="stats">
+            <p>Time Constant (τ = RC): 10.00 ms</p>
+            <p>After one time constant (10.00 ms):</p>
+            <p>- During charging: The capacitor reaches 63.2% of full voltage (3.16V)</p>
+            <p>- During discharging: The capacitor discharges to 36.8% of initial voltage (1.84V)</p>
+        </div>
+    </div>
+
+    <script>
+        // Get DOM elements
+        const canvas = document.getElementById('oscilloscope-canvas');
+        const gridLinesContainer = document.getElementById('grid-lines');
+        const ctx = canvas.getContext('2d');
+        
+        // Get controls
+        const resistanceSlider = document.getElementById('resistance');
+        const capacitanceSlider = document.getElementById('capacitance');
+        const voltageSlider = document.getElementById('voltage');
+        const timeScaleSlider = document.getElementById('time-scale');
+        const voltageScaleSlider = document.getElementById('voltage-scale');
+        const chargingRadio = document.getElementById('charging');
+        const dischargingRadio = document.getElementById('discharging');
+        const bothRadio = document.getElementById('both');
+        const startButton = document.getElementById('start-button');
+        const pauseButton = document.getElementById('pause-button');
+        const resetButton = document.getElementById('reset-button');
+        
+        // Display values
+        const resistanceValue = document.getElementById('resistance-value');
+        const capacitanceValue = document.getElementById('capacitance-value');
+        const voltageValue = document.getElementById('voltage-value');
+        const timeScaleValue = document.getElementById('time-scale-value');
+        const voltageScaleValue = document.getElementById('voltage-scale-value');
+        const statsDiv = document.getElementById('stats');
+        
+        // Circuit parameters
+        let R = 1000; // Resistance in ohms
+        let C = 10e-6; // Capacitance in farads
+        let V = 5; // Voltage in volts
+        let timeScale = 50; // ms per division
+        let voltageScale = 1; // V per division
+        let circuitMode = 'charging';
+        
+        // Simulation state
+        let isRunning = false;
+        let animationId = null;
+        let startTime = 0;
+        let runTime = 0;
+        
+        // Setup canvas size
+        function setupCanvas() {
+            // Set canvas resolution to match display size
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width * window.devicePixelRatio;
+            canvas.height = rect.height * window.devicePixelRatio;
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+            
+            // Create grid lines
+            createGridLines();
+        }
+        
+        // Create grid lines
+        function createGridLines() {
+            gridLinesContainer.innerHTML = '';
+            const width = gridLinesContainer.clientWidth;
+            const height = gridLinesContainer.clientHeight;
+            
+            // Create vertical lines (10 divisions)
+            for (let i = 0; i <= 10; i++) {
+                const line = document.createElement('div');
+                line.style.position = 'absolute';
+                line.style.left = `${i * 10}%`;
+                line.style.top = '0';
+                line.style.width = '1px';
+                line.style.height = '100%';
+                line.style.backgroundColor = i === 5 ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.2)';
+                gridLinesContainer.appendChild(line);
+            }
+            
+            // Create horizontal lines (8 divisions)
+            for (let i = 0; i <= 8; i++) {
+                const line = document.createElement('div');
+                line.style.position = 'absolute';
+                line.style.left = '0';
+                line.style.top = `${i * 12.5}%`;
+                line.style.width = '100%';
+                line.style.height = '1px';
+                line.style.backgroundColor = i === 4 ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.2)';
+                gridLinesContainer.appendChild(line);
+            }
+        }
+        
+        // Update display values
+        function updateDisplayValues() {
+            resistanceValue.textContent = `${R} Ω`;
+            capacitanceValue.textContent = `${C * 1e6} μF`;
+            voltageValue.textContent = `${V} V`;
+            timeScaleValue.textContent = `${timeScale} ms/div`;
+            voltageScaleValue.textContent = `${voltageScale} V/div`;
+            
+            // Calculate time constant
+            const tau = R * C * 1000; // in ms
+            
+            statsDiv.innerHTML = `
+                <p>Time Constant (τ = RC): ${tau.toFixed(2)} ms</p>
+                <p>After one time constant (${tau.toFixed(2)} ms):</p>
+                <p>- During charging: The capacitor reaches 63.2% of full voltage (${(V * 0.632).toFixed(2)}V)</p>
+                <p>- During discharging: The capacitor discharges to 36.8% of initial voltage (${(V * 0.368).toFixed(2)}V)</p>
+                <p>- After 5 time constants (${(tau * 5).toFixed(2)} ms): The capacitor is ${circuitMode === 'discharging' ? 'discharged to < 1%' : 'charged to > 99%'}</p>
+            `;
+            
+            // Update circuit diagram
+            document.querySelector('text:nth-of-type(1)').textContent = `${V}V`;
+            document.querySelector('text:nth-of-type(2)').textContent = `${R}Ω`;
+            document.querySelector('text:nth-of-type(3)').textContent = `${C * 1e6}μF`;
+        }
+        
+        // Calculate voltage at a given time
+        function calculateVoltage(t) {
+            const tau = R * C;
+            
+            if (circuitMode === 'charging') {
+                return V * (1 - Math.exp(-t / tau));
+            } else if (circuitMode === 'discharging') {
+                return V * Math.exp(-t / tau);
+            }
+        }
+        
+        // Draw oscilloscope display
+        function drawOscilloscope() {
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width / window.devicePixelRatio, canvas.height / window.devicePixelRatio);
+            
+            const width = canvas.width / window.devicePixelRatio;
+            const height = canvas.height / window.devicePixelRatio;
+            
+            // Calculate time constant
+            const tau = R * C; // in seconds
+            
+            // Calculate time range to display (10 divisions)
+            const timeRange = timeScale * 10 / 1000; // convert to seconds
+            
+            // Calculate pixels per volt
+            const pixelsPerVolt = height / (voltageScale * 8);
+            
+            // Draw charging curve
+            if (circuitMode === 'charging' || circuitMode === 'both') {
+                ctx.beginPath();
+                ctx.strokeStyle = '#00ff00'; // Green
+                ctx.lineWidth = 2;
+                
+                for (let x = 0; x < width; x++) {
+                    const t = (x / width) * timeRange;
+                    const v = V * (1 - Math.exp(-t / tau));
+                    const y = height - (v * pixelsPerVolt);
+                    
+                    if (x === 0) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                }
+                
+                ctx.stroke();
+                
+                // Mark time constant point
+                const tauX = (tau / timeRange) * width;
+                if (tauX < width) {
+                    const tauY = height - (V * 0.632 * pixelsPerVolt);
+                    ctx.beginPath();
+                    ctx.arc(tauX, tauY, 4, 0, Math.PI * 2);
+                    ctx.fillStyle = '#ff0000';
+                    ctx.fill();
+                }
+            }
+            
+            // Draw discharging curve
+            if (circuitMode === 'discharging' || circuitMode === 'both') {
+                ctx.beginPath();
+                ctx.strokeStyle = '#4287f5'; // Blue
+                ctx.lineWidth = 2;
+                
+                for (let x = 0; x < width; x++) {
+                    const t = (x / width) * timeRange;
+                    const v = V * Math.exp(-t / tau);
+                    const y = height - (v * pixelsPerVolt);
+                    
+                    if (x === 0) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                }
+                
+                ctx.stroke();
+                
+                // Mark time constant point
+                const tauX = (tau / timeRange) * width;
+                if (tauX < width) {
+                    const tauY = height - (V * 0.368 * pixelsPerVolt);
+                    ctx.beginPath();
+                    ctx.arc(tauX, tauY, 4, 0, Math.PI * 2);
+                    ctx.fillStyle = '#ff0000';
+                    ctx.fill();
+                }
+            }
+            
+            // Draw voltage source reference line
+            ctx.beginPath();
+            ctx.strokeStyle = 'rgba(255, 0, 0, 0.7)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 5]);
+            ctx.moveTo(0, height - (V * pixelsPerVolt));
+            ctx.lineTo(width, height - (V * pixelsPerVolt));
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+        
+        // Animate the oscilloscope
+        function animate(timestamp) {
+            if (!startTime) startTime = timestamp;
+            const elapsed = timestamp - startTime;
+            
+            drawOscilloscope();
+            
+            animationId = requestAnimationFrame(animate);
+        }
+        
+        // Event listeners for controls
+        resistanceSlider.addEventListener('input', function() {
+            R = parseInt(this.value);
+            updateDisplayValues();
+            drawOscilloscope();
+        });
+        
+        capacitanceSlider.addEventListener('input', function() {
+            C = parseInt(this.value) * 1e-6; // Convert μF to F
+            updateDisplayValues();
+            drawOscilloscope();
+        });
+        
+        voltageSlider.addEventListener('input', function() {
+            V = parseFloat(this.value);
+            updateDisplayValues();
+            drawOscilloscope();
+        });
+        
+        timeScaleSlider.addEventListener('input', function() {
+            timeScale = parseInt(this.value);
+            updateDisplayValues();
+            drawOscilloscope();
+        });
+        
+        voltageScaleSlider.addEventListener('input', function() {
+            voltageScale = parseFloat(this.value);
+            updateDisplayValues();
+            drawOscilloscope();
+        });
+        
+        chargingRadio.addEventListener('change', function() {
+            if (this.checked) {
+                circuitMode = 'charging';
+                updateDisplayValues();
+                drawOscilloscope();
+            }
+        });
+        
+        dischargingRadio.addEventListener('change', function() {
+            if (this.checked) {
+                circuitMode = 'discharging';
+                updateDisplayValues();
+                drawOscilloscope();
+            }
+        });
+        
+        bothRadio.addEventListener('change', function() {
+            if (this.checked) {
+                circuitMode = 'both';
+                updateDisplayValues();
+                drawOscilloscope();
+            }
+        });
+        
+        startButton.addEventListener('click', function() {
+            if (!isRunning) {
+                isRunning = true;
+                startTime = 0;
+                animationId = requestAnimationFrame(animate);
+            }
+        });
+        
+        pauseButton.addEventListener('click', function() {
+            isRunning = false;
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+        });
+        
+        resetButton.addEventListener('click', function() {
+            // Reset to default values
+            resistanceSlider.value = 1000;
+            capacitanceSlider.value = 10;
+            voltageSlider.value = 5;
+            timeScaleSlider.value = 50;
+            voltageScaleSlider.value = 1;
+            chargingRadio.checked = true;
+            
+            // Update internal values
+            R = 1000;
+            C = 10e-6;
+            V = 5;
+            timeScale = 50;
+            voltageScale = 1;
+            circuitMode = 'charging';
+            
+            // Update UI
+            updateDisplayValues();
+            drawOscilloscope();
+        });
+        
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            setupCanvas();
+            drawOscilloscope();
+        });
+        
+        // Initialize
+        function init() {
+            setupCanvas();
+            updateDisplayValues();
+            drawOscilloscope();
+        }
+        
+        // Start the simulator
+        init();
+    </script>
+</body>
+</html> 

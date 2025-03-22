@@ -1,0 +1,1227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Virtual Circuit Lab</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="ai-assistant.css">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f4f6f9;
+            margin: 0;
+            padding: 0;
+        }
+        /* Avatar Selection Styles */
+        .avatar-selection {
+            padding: 10px 15px;
+        }
+        
+        .avatar-selection h4 {
+            font-size: 14px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .avatar-options {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+        
+        .avatar-option {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            padding: 3px;
+            margin: 0 5px 5px 0;
+            border: 2px solid transparent;
+            transition: all 0.2s ease;
+            background-color: #f0f0f0;
+        }
+        
+        .avatar-option:hover {
+            transform: scale(1.1);
+        }
+        
+        .avatar-option.active {
+            border-color: #3B82F6;
+            background-color: #dbeafe;
+        }
+        
+        /* Dark Mode Styles */
+        .dark-mode .avatar-option {
+            background-color: #2d3748;
+        }
+        
+        .dark-mode .avatar-selection h4 {
+            color: #e2e8f0;
+        }
+        
+        .dark-mode .avatar-option.active {
+            border-color: #3B82F6;
+            background-color: #1e293b;
+        }
+
+        /* Oscilloscope styling */
+        #oscilloscope-container {
+            position: relative;
+            background-color: #1a1a1a;
+            border: 1px solid #444;
+            border-radius: 5px;
+            padding: 10px;
+            height: 400px;
+            overflow: hidden;
+        }
+        
+        #oscilloscope {
+            width: 100%;
+            height: 100%;
+            background-color: #001824;
+            border-radius: 3px;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+        
+        .oscilloscope-controls {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #222;
+            border-radius: 5px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .oscilloscope-control-group {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .channel-toggle-compact {
+            display: inline-block;
+            background-color: #333;
+            color: #fff;
+            padding: 4px 8px;
+            margin: 0 5px 5px 0;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+            user-select: none;
+            border: 1px solid transparent;
+        }
+        
+        .channel-toggle-compact.active {
+            border-color: #666;
+            box-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+        }
+        
+        .channel-toggle-compact[data-channel="1"] {
+            color: #00ff00;
+            border-color: #00ff00;
+        }
+        
+        .channel-toggle-compact[data-channel="2"] {
+            color: #ff4500;
+            border-color: #ff4500;
+        }
+        
+        .channel-toggle-compact[data-channel="3"] {
+            color: #00bfff;
+            border-color: #00bfff;
+        }
+        
+        .channel-toggle-compact[data-channel="4"] {
+            color: #ffff00;
+            border-color: #ffff00;
+        }
+        
+        /* Phosphor glow effects */
+        .js-plotly-plot .trace {
+            filter: drop-shadow(0 0 3px rgba(0, 255, 0, 0.7));
+        }
+        
+        /* Dark theme styles for oscilloscope */
+        [data-theme="dark"] #oscilloscope-container {
+            background-color: #0a0a0a;
+            border-color: #333;
+        }
+        
+        [data-theme="dark"] .oscilloscope-controls {
+            background-color: #111;
+        }
+        
+        /* Custom cursor */
+        #oscilloscope {
+            cursor: crosshair;
+        }
+        
+        /* Oscilloscope readings table */
+        .oscilloscope-readings table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .oscilloscope-readings th,
+        .oscilloscope-readings td {
+            padding: 2px 4px;
+            text-align: right;
+            border-bottom: 1px solid rgba(0, 255, 0, 0.2);
+        }
+        
+        .oscilloscope-readings th {
+            color: rgba(0, 255, 0, 0.9);
+        }
+
+        /* Settings Panel Styles */
+        .settings-panel {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 450px;
+            background-color: #2a2a2a;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            display: none;
+            color: #eee;
+            font-family: 'Arial', sans-serif;
+        }
+
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            border-bottom: 1px solid #444;
+        }
+
+        .settings-header h3 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: #999;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            margin: 0;
+        }
+
+        .close-btn:hover {
+            color: #fff;
+        }
+
+        .settings-content {
+            padding: 16px;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .settings-section {
+            margin-bottom: 20px;
+        }
+
+        .settings-section h4 {
+            margin: 0 0 12px 0;
+            font-size: 16px;
+            color: #ddd;
+            font-weight: 500;
+            border-bottom: 1px solid #444;
+            padding-bottom: 8px;
+        }
+
+        .settings-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .settings-row label {
+            width: 40%;
+            font-size: 14px;
+            color: #bbb;
+        }
+
+        .settings-control {
+            flex: 1;
+            background-color: #3a3a3a;
+            border: 1px solid #555;
+            border-radius: 4px;
+            color: #ddd;
+            padding: 6px 10px;
+            font-size: 14px;
+        }
+
+        select.settings-control {
+            cursor: pointer;
+        }
+
+        input[type="range"].settings-control {
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: #555;
+            outline: none;
+            border-radius: 3px;
+            margin: 0 10px;
+        }
+
+        input[type="range"].settings-control::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #4CAF50;
+            cursor: pointer;
+        }
+        
+        /* Firefox support */
+        input[type="range"].settings-control::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border: none;
+            border-radius: 50%;
+            background: #4CAF50;
+            cursor: pointer;
+        }
+        
+        /* Edge support */
+        input[type="range"].settings-control::-ms-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #4CAF50;
+            cursor: pointer;
+        }
+        
+        input[type="range"].settings-control::-moz-range-track {
+            background: #555;
+            height: 6px;
+            border-radius: 3px;
+        }
+        
+        input[type="range"].settings-control::-ms-track {
+            height: 6px;
+            background: transparent;
+            border-color: transparent;
+            color: transparent;
+        }
+        
+        input[type="range"].settings-control::-ms-fill-lower {
+            background: #444;
+            border-radius: 3px;
+        }
+        
+        input[type="range"].settings-control::-ms-fill-upper {
+            background: #555;
+            border-radius: 3px;
+        }
+
+        .settings-row span {
+            width: 70px;
+            text-align: right;
+            font-size: 13px;
+            color: #ccc;
+        }
+
+        .settings-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .primary-btn {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .primary-btn:hover {
+            background-color: #3e8e41;
+        }
+
+        .secondary-btn {
+            background-color: #555;
+            color: white;
+        }
+
+        .secondary-btn:hover {
+            background-color: #666;
+        }
+
+        .settings-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 10;
+        }
+
+        .settings-button:hover {
+            background-color: rgba(0, 0, 0, 0.7);
+        }
+
+        /* Add oscilloscope settings panel */
+        .settings-panel {
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 10px 0;
+            background-color: #f9f9f9;
+        }
+        
+        .settings-group {
+            margin-bottom: 10px;
+        }
+        
+        .settings-control {
+            width: 100%;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+        
+        /* Style for range inputs */
+        input[type="range"].settings-control {
+            -webkit-appearance: none;
+            height: 8px;
+            background: #d3d3d3;
+            outline: none;
+            border: none;
+            border-radius: 5px;
+        }
+        
+        input[type="range"].settings-control::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #4CAF50;
+            cursor: pointer;
+        }
+        
+        input[type="range"].settings-control::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #4CAF50;
+            cursor: pointer;
+        }
+
+        /* Add CSS for settings toggle button */
+        .settings-toggle-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 5px 10px;
+            cursor: pointer;
+            z-index: 10;
+            font-size: 14px;
+        }
+
+        .settings-toggle-btn:hover {
+            background-color: #45a049;
+        }
+
+        /* Make sure the settings panel has proper z-index and positioning */
+        #oscilloscope-settings-panel {
+            position: absolute;
+            top: 50px;
+            right: 10px;
+            width: 250px;
+            z-index: 100;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+    </style>
+</head>
+<body data-theme="light">
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <div class="logo">
+                    <i class="fas fa-microchip"></i>
+                    <h1>Virtual Circuit Lab</h1>
+                </div>
+                <div class="header-controls">
+                    <button id="new-circuit" class="button-primary">
+                        <i class="fas fa-plus"></i>
+                        New Circuit
+                    </button>
+                    <button id="save-circuit" class="button-secondary">
+                        <i class="fas fa-save"></i>
+                        Save
+                    </button>
+                    <button id="load-circuit" class="button-secondary">
+                        <i class="fas fa-folder-open"></i>
+                        Load
+                    </button>
+                    <button id="templates-button" class="button-secondary" title="Choose from predefined circuit templates">
+                        <i class="fas fa-book"></i>
+                        Templates
+                    </button>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="exp-bar-container">
+                    <div class="exp-progress-outer">
+                        <div id="exp-progress-bar" class="exp-progress-fill low-fire"></div>
+                    </div>
+                    <div id="exp-progress-text" class="exp-progress-text">0 / 100 XP</div>
+                </div>
+                <div class="theme-toggle">
+                    <button id="theme-toggle" class="icon-button">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                </div>
+                <div class="settings-toggle">
+                    <button id="settings-toggle" class="icon-button">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                    <div id="settings-menu" class="settings-menu hidden">
+                        <div class="settings-section">
+                            <h4>API Keys</h4>
+                            <div class="settings-row">
+                                <label for="generator-api-key">Circuit Generator:</label>
+                                <input type="password" id="generator-api-key" placeholder="Enter Gemini API key">
+                            </div>
+                            <div class="settings-row">
+                                <label for="assistant-api-key">Circuit Assistant:</label>
+                                <input type="password" id="assistant-api-key" placeholder="Enter Gemini API key">
+                            </div>
+                            <button id="save-api-keys" class="button-primary">Save Keys</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="profile-section">
+                    <div class="profile-details">
+                        <div id="profile-username" class="username">Lab User</div>
+                        <div id="profile-level" class="user-level">Level 1</div>
+                    </div>
+                    <img id="profile-avatar" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0OTYgNTEyIiBmaWxsPSIjM0I4MkY2Ij48cGF0aCBkPSJNMjQ4IDhDMTExIDggMCAxMTkgMCAyNTZzMTExIDI0OCAyNDggMjQ4IDI0OC0xMTEgMjQ4LTI0OFMzODUgOCAyNDggOHptMCA5NmM0OC42IDAgODggMzkuNCA4OCA4OHMtMzkuNCA4OC04OCA4OC04OC0zOS40LTg4LTg4IDM5LjQtODggODgtODh6bTAgMzQ0Yy01OC43IDAtMTExLjMtMjYuNi0xNDYuNS02OC4yIDE4LjgtMzUuNCA1OC43LTU5LjggMTAzLjgtNTkuOCAyLjQgMCA0LjguNCA3LjEgMS4xIDEzIDQgMjYuNiA2LjcgNDAuNyA2LjcgMTQuMSAwIDI3LjctMi43IDQwLjctNi43IDIuMy0uNyA0LjctMS4xIDcuMS0xLjEgNDUuMSAwIDg1LjAzIDI0LjQgMTAzLjggNTkuOEMzNTkuMyA0MjEuNCAzMDYuNyA0NDggMjQ4IDQ0OHoiLz48L3N2Zz4=" alt="User Avatar" class="user-logo">
+                    <div id="user-dropdown" class="user-dropdown hidden">
+                        <div class="dropdown-header">
+                            <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0OTYgNTEyIiBmaWxsPSIjM0I4MkY2Ij48cGF0aCBkPSJNMjQ4IDhDMTExIDggMCAxMTkgMCAyNTZzMTExIDI0OCAyNDggMjQ4IDI0OC0xMTEgMjQ4LTI0OFMzODUgOCAyNDggOHptMCA5NmM0OC42IDAgODggMzkuNCA4OCA4OHMtMzkuNCA4OC04OCA4OC04OC0zOS40LTg4LTg4IDM5LjQtODggODgtODh6bTAgMzQ0Yy01OC43IDAtMTExLjMtMjYuNi0xNDYuNS02OC4yIDE4LjgtMzUuNCA1OC43LTU5LjggMTAzLjgtNTkuOCAyLjQgMCA0LjguNCA3LjEgMS4xIDEzIDQgMjYuNiA2LjcgNDAuNyA2LjcgMTQuMSAwIDI3LjctMi43IDQwLjctNi43IDIuMy0uNyA0LjctMS4xIDcuMS0xLjEgNDUuMSAwIDg1LjAzIDI0LjQgMTAzLjggNTkuOEMzNTkuMyA0MjEuNCAzMDYuNyA0NDggMjQ4IDQ0OHoiLz48L3N2Zz4=" alt="User" class="dropdown-avatar">
+                            <div>
+                                <div class="dropdown-username">Lab User</div>
+                                <div class="dropdown-level">Level 1 - Beginner</div>
+                            </div>
+                        </div>
+                        <div class="dropdown-menu">
+                            <a href="#" class="dropdown-item">
+                                <i class="fas fa-user"></i>
+                                My Profile
+                            </a>
+                            <a href="#" class="dropdown-item">
+                                <i class="fas fa-save"></i>
+                                Saved Circuits
+                            </a>
+                            <a href="#" class="dropdown-item">
+                                <i class="fas fa-cog"></i>
+                                Settings
+                            </a>
+                            <a href="#" class="dropdown-item">
+                                <i class="fas fa-question-circle"></i>
+                                Help & Support
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <div class="avatar-selection">
+                                <h4>Change Avatar</h4>
+                                <div class="avatar-options">
+                                    <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0OTYgNTEyIiBmaWxsPSIjM0I4MkY2Ij48cGF0aCBkPSJNMjQ4IDhDMTExIDggMCAxMTkgMCAyNTZzMTExIDI0OCAyNDggMjQ4IDI0OC0xMTEgMjQ4LTI0OFMzODUgOCAyNDggOHptMCA5NmM0OC42IDAgODggMzkuNCA4OCA4OHMtMzkuNCA4OC04OCA4OC04OC0zOS40LTg4LTg4IDM5LjQtODggODgtODh6bTAgMzQ0Yy01OC43IDAtMTExLjMtMjYuNi0xNDYuNS02OC4yIDE4LjgtMzUuNCA1OC43LTU5LjggMTAzLjgtNTkuOCAyLjQgMCA0LjguNCA3LjEgMS4xIDEzIDQgMjYuNiA2LjcgNDAuNyA2LjcgMTQuMSAwIDI3LjctMi43IDQwLjctNi43IDIuMy0uNyA0LjctMS4xIDcuMS0xLjEgNDUuMSAwIDg1LjAzIDI0LjQgMTAzLjggNTkuOEMzNTkuMyA0MjEuNCAzMDYuNyA0NDggMjQ4IDQ0OHoiLz48L3N2Zz4=" alt="User Avatar 1" class="avatar-option active" data-avatar="1">
+                                    <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1NzYgNTEyIiBmaWxsPSIjM0I4MkY2Ij48cGF0aCBkPSJNNTcwLjcgMjM2LjNsLTc0LjVjLTUuNC0xMS04LjctMjMuNC04LjctMzYuNCAwLTEzIDMuMy0yNS40IDguNy0zNi40bDc0LjUtMTI3LjdjNi4xLTEwLjUgMS4yLTI0LTkuMy0zMC4xcy0yNCAxLjEtMzAuMSA5LjNsLTY0LjkgMTEwLjljLTcuOSA0LjEtMTYuNCA2LjQtMjQuOSA2LjRzLTE3LjEtMi4zLTI0LjktNi40TDM0Ni4zIDE1LjFjLTYuMS0xMC41LTE5LjYtMTMuOS0zMC4xLTcuOC0xMC41IDYuMS0xMy45IDE5LjYtNy44IDMwLjFsNjguMSAxMTcuMmM1LjQgMTEgOC43IDIzLjQgOC43IDM2LjQgMCAxMyAzLjMgMjUuNCA4LjcgMzYuNGw2OC4xIDExNy4yYzYuMSAxMC41IDIuNiAyNC0yOS4zIDMwLjFzLTI0LjEtMS4xLTMwLjEtOS4zbC02NC45LTExMC45Yy03LjktNC4xLTE2LjQtNi40LTI0LjktNi40cy0xNy4xIDIuMy0yNC45IDYuNGwtNjQuOSAxMTAuOWMtNi4xIDEwLjUtMTkuNiAxMy45LTMwLjEgNy44cy0xMy45LTE5LjYtNy44LTMwLjFsNzMuOS0xMjcuN2M1LjQtMTEgOC43LTIzLjQgOC43LTM2LjQgMC0xMy0zLjMtMjUuNC04LjctMzYuNHoiLz48L3N2Zz4=" alt="User Avatar 2" class="avatar-option" data-avatar="2">
+                                    <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0NDggNTEyIiBmaWxsPSIjM0I4MkY2Ij48cGF0aCBkPSJNMjI0IDI1NmM3MC43IDAgMTI4LTU3LjMgMTI4LTEyOFMyOTQuNyAwIDIyNCAwIDk2IDU3LjMgOTYgMTI4czU3LjMgMTI4IDEyOCAxMjh6bTAgNDV2LTQ1Yy03My41IDAtMTQxLjkgMzcuMi0xODEuNSA5OS45IDIyIDI2IDUwIDQ1LjIgODEuNSA1NC4zVjQ2NUgzMDB2LTU5LjhjMzEuNS05LjEgNTkuNS0yOC4zIDgxLjUtNTQuMy0zOS42LTYyLjctMTA4LTk5LjktMTgxLjUtOTkuOWgtODJ2MTA4aDgyYy0yMi40IDAtNDMuNyAxMC4zLTU3LjggMjhoMTE1LjZjLTE0LjEtMTcuNy0zNS40LTI4LTU3LjgtMjhIMjE4djMzLjNjMTguOC0xNy4zIDQzLjctMjcuOSA3MS0yNy45IDI3LjQgMCA1Mi4zIDEwLjYgNzEgMjcuOSAzLjIgMyA2LjIgNi4xIDkgOS40djQ1LjljLTMuNS0xNi40LTEyLTMxLjItMjQtNDIuOS0yNy43LTI3LjItNzAtMzIuOC0xMDUtMTMuMS0xMC41IDUuOS0xOSAxNC41LTI1IDI0LjUgMjcuNSAyOS4yIDczLjcgMjYuOSA5OC04LjV2MjAuOWMtMTUgMjY5LTIyLjEgNDAtMjcuMiA1MiA1LjEtMTIgMTIuMi0yMi4zIDI3LjItNTJ2LTE0Ny40YzAtMjQuMS0xOS41LTQzLjYtNDMuNi00My42eiIvPjwvc3ZnPg==" alt="User Avatar 3" class="avatar-option" data-avatar="3">
+                                    <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NDAgNTEyIiBmaWxsPSIjM0I4MkY2Ij48cGF0aCBkPSJNNTc2IDEyOGE2NCA2NCAwIDEgMCAtMTI4IDAgNjQgNjQgMCAxIDAgMTI4IDB6TTM2MCAyODhhNjQgNjQgMCAxIDAgLTEyOCAwIDY0IDY0IDAgMSAwIDEyOCAwek0yMTYgOTZhNjQgNjQgMCAxIDAgLTEyOCAwIDY0IDY0IDAgMSAwIDEyOCAwek0yOC44IDM4NGMwIDEzLjIgMS4zIDI2LjIgMy44IDM4LjYgNS45LTEuNSAxMi0yLjYgMTguMi0yLjZoNTUuMXYtMzZjMC0yMC4xLTkuNC0zOC4xLTI0LTQ5LjlWMzAxLjJjMi44LTQuOCA1LjgtOS42IDguOS0xNC4xbDIuMy0zLjFDMTIwIDI1MyAxNjAuOSAyMjQgMjA1LjcgMjI0SDIyNmMxOC4yIDAgMzUtNS4xIDQ5LjetMTMuOWwxNS40LTkuMyA1NC4zLTM3LjIgMjkuNyA0MC41YzExLjgwIDEzLjEgMjkuMjMgMTYuMSA0My45NyAxMy41IDM1Ljc3LTYuMyA0OS42LTUyLjAgMjIuNC03OC40bC05Ni41LTEwMmM4LTI0LjEgNS4zLTUwLjctNy44LTcxLjhDMzI2LjQtNDkgMjc2LjgtNDcuNyAyMzcuOC0yMGMtMjkuOSAyMS4yLTQzLjYgNTYuOC00NS43IDkyLjNMMTI5LS4zYy0yMi4yIDEwLjctMzUuNyAzMS41LTMzLjcgNTUuNSAxLjEgMTMgNi45IDI1LjggMTcuNiAzNS41IDIyLjEgMjAuMSA1Mi4xIDExLjkgNjkuMi05LjNsMTE3IDc5LjktMjUuNCAzMDcuNmMxLjggMy44IDMuOSA3LjQgNi4yIDEwLjktNzcuKiA0Ni4zLTEyOS41IDEyOS1xMjkuNSAyMjQgMCA5LjYgLjUgMTkuMS49IDI4LjVoMjQyLjVjLjUtOS40IC45LTE4LjkgLjktMjguNSAuMS01OC4zLTE4LjUtMTEyLjctNTAtMTU3djQ5LjNjMCAwLTUuOSA0MS4xLTE5LjEgNTYuNS0xMSAxMi44LTI3LjQgMTktNDcuOSAxOS05NC4zIDAtMTE3LjctNTQuNS0xMjMuNS03NS45LTMuMi0xMS44LTMuMi0yNSAwLTM2LjhsMS0zLjM1TDE3MyA0NC4zNSAxNTAuMyA2NGwtOTAuNy02MS4yYy0uMSAwLS4yLjEtLjMuMmwtLjMuM2MtMyAyLjgtNS45IDUuNi04LjcgOC42LS4zLjMtLjYuNS0uOC44TEw5LjQgMzYuN1Y1MC42Yy4xIDAgLjEgMCAuMiAwTDY0IDg0LjZsLTI1LjkgNDQuN3YtMTguNmMtNC45IDI1LjUtNy45IDUxLTkuMSA3NS45aC0uMmMtLjUgMTEuMS0uOCAyMi4zLS44IDMzLjcgMCA1NC44IDkuNSAxMDcuNyAyNi45IDE1Ni43TDM5MS4xIDUxMmgyNDIuNWMuNS05LjUgLjktMTkgLjktMjguNiAwLTk1LjEtNTItMTc3LjctMTI5LjUtMjI0LjFsLS41LTEyLjctMTguMS0yOS41LTMxLjEtNTAuN0M1MDcuNyAxMzAuOCA1MzQuNCAxMDQgNTM1LjYgNzVjMS4zLTM0LjctMzYuOS01Ny40LTY0LjgtMzQuc2wtNTcuNSA2Mi44di0xMS4zYzAtMjEuOSA4LjQtNDEuMiAyMi4yLTU0LjVsbDIwLjQtMTkuOWMxMy42LTEzLjMgMTQuOS0zNS4yIDIuOS00OS44LTEuOS0yLjMtNC0yLjktNS44LTUuNmwtLjUtLjVjLTEwLjctMTAuMy0yOC02LjUtMzguNSA1LjhsLTE3LjQgMjAuMmMtOC4xIDkuNS0xNy4xIDkuMS0yMi43IDkuMWwtMjMuNS0yLjhjLTMyLTIuOC02MC42IDkuMS04Ni4xIDMwLjVsLTYuOCA1LjhWNDguM2MwLTI2LjQtMjEuNi00OC00OC00OFMyMTYgMjEuNiAyMTYgNDhWMTM2YzAgyCByMC40LjEgNDgtNDguMSA0OEgyMDUuN2MtNDQuOSAwLTg1LjcgMjkuNS0xMTUgNjBsLTIuMyAzLjFjLTMgNC4zLTUuOSA4LjYtOC42IDEzLjF2Mzlscy0yNC45IDguOC00Mi45IDMzLjRjLTguNC0xNC4xLTE0LjQtMjkuNy0xNy45LTQ2djJDOC44IDI3OS42IDAgMzMxLjIgMCAzODRIMjguOHoiLz48L3N2Zz4=" alt="User Avatar 4" class="avatar-option" data-avatar="4">
+                                </div>
+                            </div>
+                            <div class="dropdown-divider"></div>
+                            <a href="#" class="dropdown-item">
+                                <i class="fas fa-sign-out-alt"></i>
+                                Sign Out
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Left Sidebar - Components Panel -->
+            <aside class="sidebar components-panel">
+                <div class="search-bar">
+                    <input type="text" placeholder="Search components...">
+                    <i class="fas fa-search"></i>
+                </div>
+                
+                <!-- Basic Components -->
+                <div class="category">
+                    <div class="category-header">
+                        <i class="fas fa-chevron-down"></i>
+                        <span>Basic Components</span>
+                    </div>
+                    <div class="category-items">
+                        <div class="component" draggable="true" data-component="resistor">
+                            <i class="fas fa-wave-square"></i>
+                            <span>Resistor</span>
+                        </div>
+                        <div class="component" draggable="true" data-component="capacitor">
+                            <i class="fas fa-equals"></i>
+                            <span>Capacitor</span>
+                        </div>
+                        <div class="component" draggable="true" data-component="inductor">
+                            <i class="fas fa-coil"></i>
+                            <span>Inductor</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sources -->
+                <div class="category">
+                    <div class="category-header">
+                        <i class="fas fa-chevron-down"></i>
+                        <span>Sources</span>
+                    </div>
+                    <div class="category-items">
+                        <div class="component" draggable="true" data-component="voltage-source">
+                            <i class="fas fa-battery-full"></i>
+                            <span>Voltage Source</span>
+                        </div>
+                        <div class="component" draggable="true" data-component="current-source">
+                            <i class="fas fa-bolt"></i>
+                            <span>Current Source</span>
+                        </div>
+                        <div class="component" draggable="true" data-component="ground">
+                            <i class="fas fa-minus"></i>
+                            <span>Ground</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Semiconductors -->
+                <div class="category">
+                    <div class="category-header">
+                        <i class="fas fa-chevron-down"></i>
+                        <span>Semiconductors</span>
+                    </div>
+                    <div class="category-items">
+                        <div class="component" draggable="true" data-component="diode">
+                            <i class="fas fa-forward"></i>
+                            <span>Diode</span>
+                        </div>
+                        <div class="component" draggable="true" data-component="transistor">
+                            <i class="fas fa-project-diagram"></i>
+                            <span>Transistor</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Developer Tools -->
+                <div class="category">
+                    <div class="category-header">
+                        <i class="fas fa-chevron-down"></i>
+                        <span>Developer Tools</span>
+                    </div>
+                    <div class="category-items">
+                        <a href="generate-images.html" target="_blank" class="tool-link">
+                            <i class="fas fa-image"></i>
+                            <span>Generate Component Images</span>
+                        </a>
+                        <a href="rc_circuit_web.html" target="_blank" class="tool-link">
+                            <i class="fas fa-chart-line"></i>
+                            <span>RC Circuit Simulator</span>
+                        </a>
+                        <a href="rc_circuit_simulation.py" download class="tool-link">
+                            <i class="fas fa-download"></i>
+                            <span>Download RC Simulation (Python)</span>
+                        </a>
+                        <a href="rc_circuit_interactive.py" download class="tool-link">
+                            <i class="fas fa-download"></i>
+                            <span>Download Interactive RC Simulator</span>
+                        </a>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Circuit Workspace -->
+            <section class="circuit-workspace">
+                <div class="workspace-controls">
+                    <div class="control-group">
+                        <button id="toggle-grid" class="icon-button" title="Toggle Grid">
+                            <i class="fas fa-border-all"></i>
+                        </button>
+                        <button id="toggle-snap" class="icon-button" title="Toggle Snap to Grid">
+                            <i class="fas fa-magnet"></i>
+                        </button>
+                        <button id="delete-component" class="icon-button" title="Delete Selected Component">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                        <button id="clear-canvas" class="icon-button" title="Clear Entire Canvas">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </div>
+                    <div class="control-group">
+                        <button id="zoom-out" class="icon-button">
+                            <i class="fas fa-minus"></i>
+                        </button>
+                        <span id="zoom-level">100%</span>
+                        <button id="zoom-in" class="icon-button">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Circuit Description Input -->
+                <div class="circuit-description">
+                    <div class="input-group">
+                        <input type="text" id="circuit-description-input" placeholder="Describe your circuit (e.g., 'Create a series circuit with a 10V battery and 1kΩ resistor')">
+                        <button id="generate-circuit" class="button-primary">
+                            <i class="fas fa-magic"></i>
+                            Generate
+                        </button>
+                    </div>
+                </div>
+
+                <div class="circuit-board">
+                    <canvas id="grid-canvas" class="canvas-layer"></canvas>
+                    <canvas id="component-canvas" class="canvas-layer"></canvas>
+                    <canvas id="wire-canvas" class="canvas-layer"></canvas>
+                    <canvas id="interaction-canvas" class="canvas-layer"></canvas>
+                </div>
+
+                <div class="simulation-controls">
+                    <div class="control-group">
+                        <button id="start-simulation" class="button-primary">
+                            <i class="fas fa-play"></i>
+                            Start
+                        </button>
+                        <button id="pause-simulation" class="button-secondary" disabled>
+                            <i class="fas fa-pause"></i>
+                            Pause
+                        </button>
+                        <button id="stop-simulation" class="button-secondary" disabled>
+                            <i class="fas fa-stop"></i>
+                            Stop
+                        </button>
+                    </div>
+                    <div class="control-group">
+                        <label for="simulation-speed">Speed:</label>
+                        <input type="range" id="simulation-speed" min="0.1" max="2" step="0.1" value="1">
+                        <span id="speed-value">1x</span>
+                    </div>
+                    <div class="control-group">
+                        <label for="simulation-type">Type:</label>
+                        <select id="simulation-type">
+                            <option value="tran">Transient</option>
+                            <option value="dc">DC Analysis</option>
+                            <option value="ac">AC Analysis</option>
+                        </select>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right Sidebar - Properties Panel -->
+            <aside class="sidebar properties-panel">
+                <div class="panel-section">
+                    <h3>Properties</h3>
+                    <div id="component-properties">
+                        <p class="no-selection">Select a component to view properties</p>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <h3>Measurements</h3>
+                    <div class="measurement-tools">
+                        <button class="tool-button" id="voltmeter">
+                            <i class="fas fa-bolt"></i>
+                            <span>Voltmeter</span>
+                        </button>
+                        <button class="tool-button" id="ammeter">
+                            <i class="fas fa-wave-square"></i>
+                            <span>Ammeter</span>
+                        </button>
+                        <button class="tool-button" id="open-oscilloscope">
+                            <i class="fas fa-chart-line"></i>
+                            <span>Oscilloscope</span>
+                        </button>
+                    </div>
+                    <div id="measurement-results"></div>
+                </div>
+                
+                <!-- Embedded Oscilloscope Display -->
+                <div class="panel-section">
+                    <h3>
+                        <i class="fas fa-wave-square"></i> 
+                        Oscilloscope
+                        <span id="oscilloscope-status" class="status-indicator">Stopped</span>
+                    </h3>
+                    <div id="oscilloscope-container" class="tab-content">
+                        <div id="oscilloscope"></div>
+                        <div class="oscilloscope-status-indicator"></div>
+                        <div class="oscilloscope-controls">
+                            <!-- Channel toggles -->
+                            <div class="channel-toggles">
+                                <button class="channel-toggle channel1" data-channel="1">CH1</button>
+                                <button class="channel-toggle channel2" data-channel="2">CH2</button>
+                                <button class="channel-toggle channel3" data-channel="3">CH3</button>
+                                <button class="channel-toggle channel4" data-channel="4">CH4</button>
+                            </div>
+                            
+                            <!-- Time and voltage scales -->
+                            <div class="scale-controls">
+                                <div class="scale-control">
+                                    <label>Time/div:</label>
+                                    <div class="scale-buttons">
+                                        <button class="scale-button" data-action="decrease-time">-</button>
+                                        <span class="scale-value time-scale">2 ms</span>
+                                        <button class="scale-button" data-action="increase-time">+</button>
+                                    </div>
+                                </div>
+                                <div class="scale-control">
+                                    <label>Volts/div:</label>
+                                    <div class="scale-buttons">
+                                        <button class="scale-button" data-action="decrease-voltage">-</button>
+                                        <span class="scale-value voltage-scale">2 V</span>
+                                        <button class="scale-button" data-action="increase-voltage">+</button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Cursor controls -->
+                            <div class="cursor-controls">
+                                <div class="cursor-control">
+                                    <label>Cursor:</label>
+                                    <select class="cursor-type">
+                                        <option value="off">Off</option>
+                                        <option value="time">Time</option>
+                                        <option value="voltage">Voltage</option>
+                                        <option value="both">Both</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Add settings button to oscilloscope controls -->
+                        <button id="open-oscilloscope-settings" class="settings-button" title="Oscilloscope Settings">
+                            <i class="fas fa-cog"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- Add oscilloscope settings panel -->
+                    <div id="oscilloscope-settings-panel" class="settings-panel">
+                        <h3>Oscilloscope Settings</h3>
+                        <div class="settings-group">
+                            <label for="accuracy-level">Accuracy Level:</label>
+                            <select id="accuracy-level">
+                                <option value="low">Low (Faster)</option>
+                                <option value="medium" selected>Medium (Balanced)</option>
+                                <option value="high">High (More Accurate)</option>
+                                <option value="ultra">Ultra (Most Stable)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="settings-group">
+                            <label for="sampling-rate">Sampling Rate:</label>
+                            <input type="range" id="sampling-rate" min="10" max="100" value="50">
+                            <span id="sampling-rate-value">50</span>
+                        </div>
+                        
+                        <div class="settings-group">
+                            <label for="noise-filtering">Noise Filtering:</label>
+                            <input type="range" id="noise-filtering" min="0" max="100" value="80">
+                            <span id="noise-filtering-value">80</span>
+                        </div>
+                        
+                        <div class="settings-group">
+                            <label for="waveform-persistence">Waveform Persistence:</label>
+                            <input type="range" id="waveform-persistence" min="0" max="100" value="60">
+                            <span id="waveform-persistence-value">60</span>
+                        </div>
+                        
+                        <div class="settings-group">
+                            <label for="external-module">External Module:</label>
+                            <select id="external-module" class="settings-control">
+                                <option value="none" selected>None</option>
+                                <option value="spice">SPICE</option>
+                                <option value="custom">Custom API</option>
+                            </select>
+                        </div>
+                        
+                        <div class="settings-group">
+                            <button id="apply-oscilloscope-settings" class="btn btn-primary">Apply Settings</button>
+                            <button id="reset-oscilloscope-settings" class="btn btn-secondary">Reset</button>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </main>
+    </div>
+
+    <!-- Templates -->
+    <template id="component-tooltip">
+        <div class="component-tooltip">
+            <div class="tooltip-header"></div>
+            <div class="tooltip-content"></div>
+            <div class="tooltip-values"></div>
+        </div>
+    </template>
+
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script>
+        // Check if Plotly loaded correctly
+        window.addEventListener('DOMContentLoaded', function() {
+            if (typeof Plotly === 'undefined') {
+                console.error("Plotly library failed to load! Attempting to load alternative source...");
+                // Try loading from alternative CDN
+                var script = document.createElement('script');
+                script.src = "https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.27.1/plotly.min.js";
+                script.onload = function() {
+                    console.log("Plotly loaded successfully from alternative source");
+                };
+                script.onerror = function() {
+                    console.error("Failed to load Plotly from alternative source. Oscilloscope functionality will be unavailable.");
+                };
+                document.head.appendChild(script);
+            } else {
+                console.log("Plotly library loaded successfully");
+            }
+        });
+    </script>
+    <script src="oscilloscope.js"></script>
+    <script src="circuit-components.js"></script>
+    <script src="circuit-board.js"></script>
+    <script src="component-descriptions.js"></script>
+    <script src="ai-assistant.js"></script>
+    <script src="gemini-integration.js"></script>
+    <script src="user-profile.js"></script>
+    <script src="script.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
+    <script>
+        // Avatar selection functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const avatarOptions = document.querySelectorAll('.avatar-option');
+            const userAvatar = document.getElementById('user-avatar');
+            const dropdownAvatar = document.querySelector('.dropdown-user-info img');
+            
+            avatarOptions.forEach(option => {
+                option.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    // Remove active class from all options
+                    avatarOptions.forEach(opt => opt.classList.remove('active'));
+                    
+                    // Add active class to selected option
+                    this.classList.add('active');
+                    
+                    // Change the avatar in the navbar and dropdown
+                    const avatarSrc = this.getAttribute('src');
+                    userAvatar.setAttribute('src', avatarSrc);
+                    dropdownAvatar.setAttribute('src', avatarSrc);
+                    
+                    // Store the selected avatar in localStorage
+                    localStorage.setItem('selectedAvatar', avatarSrc);
+                    
+                    console.log('Avatar changed successfully');
+                });
+            });
+            
+            // Load saved avatar from localStorage if exists
+            const savedAvatar = localStorage.getItem('selectedAvatar');
+            if (savedAvatar) {
+                userAvatar.setAttribute('src', savedAvatar);
+                dropdownAvatar.setAttribute('src', savedAvatar);
+                
+                // Set the corresponding avatar option as active
+                avatarOptions.forEach(option => {
+                    if (option.getAttribute('src') === savedAvatar) {
+                        option.classList.add('active');
+                    } else {
+                        option.classList.remove('active');
+                    }
+                });
+            }
+        });
+
+        // Test Plotly initialization on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("DOM Content Loaded - checking Plotly availability:", typeof Plotly !== 'undefined' ? "Available" : "Not available");
+            
+            setTimeout(function() {
+                console.log("Delayed initialization - checking Plotly availability:", typeof Plotly !== 'undefined' ? "Available" : "Not available");
+                const oscilloscopeEl = document.getElementById('oscilloscope');
+                
+                if (oscilloscopeEl) {
+                    console.log("Oscilloscope element found, dimensions:", oscilloscopeEl.offsetWidth, "x", oscilloscopeEl.offsetHeight);
+                } else {
+                    console.error("Oscilloscope element not found!");
+                }
+                
+                if (oscilloscopeEl && typeof Plotly !== 'undefined') {
+                    console.log("Testing direct Plotly initialization");
+                    
+                    // Clear the oscilloscope container
+                    oscilloscopeEl.innerHTML = '';
+                    
+                    // Initialize with simple test data
+                    const testData = [{
+                        x: [0, 1, 2, 3, 4, 5],
+                        y: [0, 5, 0, -5, 0, 5],
+                        type: 'scatter',
+                        mode: 'lines',
+                        line: {
+                            color: '#00ff00',
+                            width: 2
+                        }
+                    }];
+                    
+                    const testLayout = {
+                        margin: { t: 10, r: 10, b: 30, l: 40 },
+                        xaxis: {
+                            title: 'Time (ms)',
+                            showgrid: true,
+                            gridcolor: 'rgba(0, 255, 0, 0.3)'
+                        },
+                        yaxis: {
+                            title: 'Voltage (V)',
+                            showgrid: true,
+                            gridcolor: 'rgba(0, 255, 0, 0.3)'
+                        },
+                        plot_bgcolor: '#001824',
+                        paper_bgcolor: 'rgba(0, 0, 0, 0)',
+                        font: {
+                            color: 'rgba(0, 255, 0, 0.7)'
+                        }
+                    };
+                    
+                    Plotly.newPlot(oscilloscopeEl, testData, testLayout)
+                        .then(() => console.log("Test Plotly initialization successful!"))
+                        .catch(err => console.error("Test Plotly initialization failed:", err));
+                } else {
+                    console.error("Oscilloscope element or Plotly not available for test initialization");
+                }
+            }, 1000); // Wait 1 second to ensure everything is loaded
+        });
+
+        // Add oscilloscope settings functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            // Elements
+            const settingsPanel = document.getElementById('oscilloscope-settings-panel');
+            const openSettingsBtn = document.getElementById('open-oscilloscope-settings');
+            const closeSettingsBtn = document.getElementById('close-oscilloscope-settings');
+            const applySettingsBtn = document.getElementById('apply-oscilloscope-settings');
+            const resetSettingsBtn = document.getElementById('reset-oscilloscope-settings');
+            
+            // Range inputs with value displays
+            const samplingRateInput = document.getElementById('sampling-rate');
+            const samplingRateValue = document.getElementById('sampling-rate-value');
+            const noiseFilterInput = document.getElementById('noise-filtering');
+            const noiseFilterValue = document.getElementById('noise-filtering-value');
+            const persistenceInput = document.getElementById('waveform-persistence');
+            const persistenceValue = document.getElementById('waveform-persistence-value');
+            
+            // Update displayed values when sliders change
+            samplingRateInput.addEventListener('input', function() {
+                samplingRateValue.textContent = this.value;
+            });
+            
+            noiseFilterInput.addEventListener('input', function() {
+                noiseFilterValue.textContent = this.value;
+            });
+            
+            persistenceInput.addEventListener('input', function() {
+                persistenceValue.textContent = this.value;
+            });
+            
+            // Open settings panel
+            openSettingsBtn.addEventListener('click', function() {
+                settingsPanel.style.display = 'block';
+            });
+            
+            // Close settings panel
+            closeSettingsBtn.addEventListener('click', function() {
+                settingsPanel.style.display = 'none';
+            });
+            
+            // Apply settings
+            applySettingsBtn.addEventListener('click', function() {
+                const settings = {
+                    accuracyLevel: document.getElementById('accuracy-level').value,
+                    samplingRate: parseInt(samplingRateInput.value),
+                    noiseFiltering: parseInt(noiseFilterInput.value),
+                    waveformPersistence: parseInt(persistenceInput.value),
+                    externalModule: document.getElementById('external-module').value
+                };
+                
+                // Default the initial values to more stable settings
+                const stabilityPreset = {
+                    accuracyLevel: 'ultra',
+                    samplingRate: 40,
+                    noiseFiltering: 80,
+                    waveformPersistence: 60,
+                    externalModule: 'none'
+                };
+                
+                // For new sessions, apply the stability preset
+                if (!window.oscilloscopeSettingsInitialized) {
+                    // Update UI to match preset
+                    document.getElementById('accuracy-level').value = stabilityPreset.accuracyLevel;
+                    document.getElementById('sampling-rate').value = stabilityPreset.samplingRate;
+                    document.getElementById('noise-filtering').value = stabilityPreset.noiseFiltering;
+                    document.getElementById('waveform-persistence').value = stabilityPreset.waveformPersistence;
+                    document.getElementById('external-module').value = stabilityPreset.externalModule;
+                    
+                    // Update displayed values
+                    document.getElementById('sampling-rate-value').textContent = stabilityPreset.samplingRate;
+                    document.getElementById('noise-filtering-value').textContent = stabilityPreset.noiseFiltering;
+                    document.getElementById('waveform-persistence-value').textContent = stabilityPreset.waveformPersistence;
+                    
+                    // Use preset for first application
+                    settings = stabilityPreset;
+                    window.oscilloscopeSettingsInitialized = true;
+                }
+                
+                // Apply visual feedback (flash effect)
+                const applyButton = document.getElementById('apply-oscilloscope-settings');
+                applyButton.classList.add('button-flash');
+                setTimeout(() => {
+                    applyButton.classList.remove('button-flash');
+                }, 300);
+                
+                // Dispatch custom event with settings data
+                const event = new CustomEvent('oscilloscopeSettingsChanged', { 
+                    detail: settings 
+                });
+                document.dispatchEvent(event);
+            });
+            
+            // Reset settings to default
+            resetSettingsBtn.addEventListener('click', function() {
+                document.getElementById('accuracy-level').value = 'medium';
+                samplingRateInput.value = '50';
+                noiseFilterInput.value = '80';
+                persistenceInput.value = '60';
+                document.getElementById('external-module').value = 'none';
+                
+                // Update displayed values
+                samplingRateValue.textContent = '50';
+                noiseFilterValue.textContent = '80';
+                persistenceValue.textContent = '60';
+            });
+            
+            // Close when clicking outside
+            window.addEventListener('click', function(event) {
+                if (event.target === settingsPanel) {
+                    settingsPanel.style.display = 'none';
+                }
+            });
+        });
+
+        // Listen for oscilloscope settings changes to update simulation
+        document.addEventListener('oscilloscopeSettingsChanged', function(e) {
+            const settings = e.detail;
+            
+            // Apply settings to oscilloscope
+            if (window.simulationManager && window.simulationManager.oscilloscope) {
+                // Update sampling rate
+                window.simulationManager.oscilloscope.setSamplingRate(settings.samplingRate);
+                
+                // Update waveform persistence
+                window.simulationManager.oscilloscope.setPersistence(settings.waveformPersistence);
+                
+                // Update other settings
+                window.simulationManager.oscilloscope.updateSettings({
+                    noiseFilter: settings.noiseFiltering,
+                    waveformStyle: settings.waveformStyle,
+                    gridIntensity: settings.gridIntensity
+                });
+            }
+            
+            // Update simulation resolution based on accuracy level
+            if (window.simWorker) {
+                window.simWorker.postMessage({
+                    type: 'update-accuracy',
+                    settings: {
+                        accuracyLevel: settings.accuracyLevel,
+                        calculationResolution: settings.calculationResolution,
+                        stabilityFactor: settings.stabilityFactor
+                    }
+                });
+            }
+            
+            // Load external module if selected
+            if (settings.externalModule !== 'none') {
+                loadExternalModule(settings.externalModule);
+            }
+        });
+
+        // Function to load external simulation modules
+        function loadExternalModule(moduleType) {
+            console.log(`Loading external module: ${moduleType}`);
+            
+            // Placeholder for module loading logic
+            if (moduleType === 'spice') {
+                // Example: Load SPICE integration
+                const script = document.createElement('script');
+                script.src = 'modules/spice-integration.js';
+                script.onload = function() {
+                    console.log('SPICE module loaded successfully');
+                    // Initialize the module
+                    if (typeof window.initSpiceModule === 'function') {
+                        window.initSpiceModule();
+                    }
+                };
+                script.onerror = function() {
+                    console.error('Failed to load SPICE module');
+                };
+                document.head.appendChild(script);
+            } else if (moduleType === 'custom') {
+                // Custom API integration
+                console.log('Custom API module selected. Please provide API endpoint.');
+                
+                // Show dialog to enter API endpoint (simplified placeholder)
+                const apiEndpoint = prompt('Enter custom API endpoint URL:');
+                if (apiEndpoint) {
+                    console.log(`Connecting to custom API at: ${apiEndpoint}`);
+                    // Implementation would connect to the provided endpoint
+                }
+            }
+        }
+    </script>
+</body>
+</html> 
